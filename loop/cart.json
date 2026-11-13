@@ -1,0 +1,39 @@
+{
+  "id": "8ae113b5426e031d",
+  "name": "Loop",
+  "author": "kreyk29 (original game and levels); Arcade version by PodBox",
+  "version": "1",
+  "rate": 33,
+  "menu_button": "game",
+  "help": "Turn the pipes until every channel meets its own kind in the next cell: thick to thick, twin to twin, thin to thin. A network with no open end fills with its liquid; when every network is full, the level is done. Prev and Next move left and right, Menu up and Play down; the wheel steps through the pipes. Select turns a pipe. Fewest turns wins; time breaks a tie. After Loop by kreyk29, whose levels these are (CC BY-NC-SA 4.0).",
+  "options": [
+    {
+      "name": "palette",
+      "title": "Palette",
+      "type": "choice",
+      "choices": [
+        "Dune",
+        "Night",
+        "Sage",
+        "Coral",
+        "Slate",
+        "Mint",
+        "Paper",
+        "Neon"
+      ],
+      "default": 0,
+      "help": "The colours of the board, the pipes, the text and the three liquids."
+    },
+    {
+      "name": "water",
+      "title": "Water Effects",
+      "type": "choice",
+      "choices": [
+        "Full",
+        "Reduced"
+      ],
+      "default": 0,
+      "help": "Reduced leaves out the splash when a piece turns."
+    }
+  ]
+}

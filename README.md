@@ -1,52 +1,53 @@
-# My Game
+# Loop
 
-A game for the Arcade on an iPod running
-[PodBox](https://github.com/anthonyfletcher/podbox).
+A pipe puzzle for the Arcade on an iPod running
+[PodBox](https://github.com/anthonyfletcher/podbox), after
+[Loop](https://kreyk29.itch.io/loop) by kreyk29.
 
-## Making it
+Turn the pipes until every channel meets its own kind in the next cell:
+thick to thick, twin to twin, thin to thin. A network with no open end
+fills with its liquid, and an open end leaks until you seal it. When every
+network is full, the level is done. Fewest turns wins; time breaks a tie.
+32 levels, the original's own.
 
-1. Open the [Arcade IDE](https://anthonyfletcher.github.io/podbox/ide/) in
-   Chrome or Edge, choose **Cart > Open folder**, and pick this
-   repository's `mygame` folder. Edit, run and test it there; the IDE saves
-   back into the folder.
-2. Commit and push. GitHub builds the game: open the **Actions** tab, the
-   latest run, and download the game under **Artifacts**: it comes as a
-   zip holding the `.pbg`. A mistake in the code shows there with its file
-   and line.
-3. Copy the `.pbg` into the iPod's `Games` folder, and choose **Arcade** on
-   its main menu.
+## Playing it
 
-The first build gives the game an id of its own (its saves and scores are
-kept under it) and commits that change, so pull before your next push.
+- **On the iPod:** download `loop.pbg` from the latest
+  [release](https://github.com/anthonyfletcher/podbox-game-loop/releases),
+  copy it anywhere onto the iPod, eject, and choose **Arcade** on the main
+  menu.
+- **In a browser:** <https://anthonyfletcher.github.io/podbox-game-loop/>,
+  with the keys or a phone's touch wheel.
 
-To publish a version, push a tag -- `git tag v1 && git push --tags` -- and
-the `.pbg` is attached to a release of that name.
+Prev and Next move left and right, Menu up and Play down; the wheel steps
+through the pipes. Select turns a pipe. Eight palettes are in the pause
+menu (hold Menu).
 
-Each push to the main branch also puts the game on the web, playable in a
-browser with the keys or a phone's touch wheel: turn on **Settings > Pages**
-with the `gh-pages` branch as its source, once, and it is at
-`https://<you>.github.io/<this repository>/`. GitHub serves Pages free for
-a public repository; a private one needs a paid plan. A game that plays the
-owner's music cannot be a web page: set `PAGE` to `false` in
-`.github/workflows/build.yml` for one.
+## Changing it
 
-To rename the game, change `name` in `mygame/cart.json`. To rename the
-folder, change `CART` in `.github/workflows/build.yml` to match.
+The game is the `loop` folder. Open it in the
+[Arcade IDE](https://anthonyfletcher.github.io/podbox/ide/) in Chrome or
+Edge with **Cart > Open folder**; it saves back into the folder. Every push
+builds `loop.pbg` (the **Actions** tab, under **Artifacts**) and puts the
+web page up to date. Push a tag -- `git tag v2 && git push --tags` -- to
+attach the `.pbg` to a release of that name.
 
-## Learning
-
-- [The manual](https://github.com/anthonyfletcher/podbox/blob/master/arcade/manual/README.md):
-  a tutorial that builds a whole game, then a chapter for each part of the
-  Arcade.
-- [Every function](https://github.com/anthonyfletcher/podbox/blob/master/arcade/sdk/api.md),
-  one line each.
-
-With [Claude Code](https://claude.com/claude-code), the Arcade skill in
+The [Arcade manual](https://github.com/anthonyfletcher/podbox/blob/master/arcade/manual/README.md)
+covers the language and every function. With
+[Claude Code](https://claude.com/claude-code), the Arcade skill in
 `.claude/skills/podbox-arcade` is loaded when you ask for help with the
 game.
 
-## Licence
+## Credits and licence
 
-The template is under the 0BSD licence (`LICENSE`): your game is yours,
-under whatever licence you choose. The skill in `.claude/skills` is text
-from the PodBox manual, under the GPL version 2.
+Loop is kreyk29's game: <https://kreyk29.itch.io/loop>, with the original
+PICO-8 cart at <https://www.lexaloffle.com/bbs/?pid=109978>. This version
+is written afresh for the Arcade, and keeps the original's 32 levels.
+
+- The levels (`loop/data/levels.json`) are kreyk29's, under
+  [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/):
+  credit kreyk29, no commercial use, and share anything made from them
+  alike. `loop/CREDITS.md` has the details.
+- The rest of this repository is under the 0BSD licence (`LICENSE`).
+- The skill in `.claude/skills` is text from the PodBox manual, under the
+  GPL version 2.
