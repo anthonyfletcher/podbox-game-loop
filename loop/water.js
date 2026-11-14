@@ -39,7 +39,14 @@
 //              slowly enough to watch it rise, then topped off
 //   step()     a tick of the pour from the cursor (on the title, from the
 //              tops of the L and the P), the pouring of sealed networks,
-//              and the field
+//              the bridges over crossings, and the field
+//
+// A crossing's second pipe runs over its first and cuts it in two, so
+// liquid in the first would stop at the cut. Every other tick a bridge
+// carries it across, a pixel a row (half the crossings one tick, half
+// the next): down only where the pipe stands upright, and
+// where it lies level, from a side with liquid two pixels deep at the cut
+// to a side empty two pixels deep, so it never runs back and forth.
 
 const W = 160, H = 120;
 const POOL_ROWS = 6;                // the rows under the column the pool shows in
@@ -89,6 +96,20 @@ var evaporating = new Int32Array(6);   // the pool's drying reactions
 // the inside pixels as y * 14 + x, highest first.
 var insides = [];
 var queue = new Int32Array(128);
+var crossings = new Int32Array(64); // the board's crossings
+var crossN = 0;
+// Per kind * 4 + turns, built the first time it is needed: each row (or
+// column) of a crossing's first pipe as eight numbers in the cell, x, y
+// of the pixel before the cut, of the pixel after it, and of the pixels
+// behind those; the behinds are -1 where the pipe stands upright, and
+// the liquid crosses only downward. Level, the rows run bottom up.
+var bridges = [];
+// crossing q's rows in the field, rowN[q] of them from q * 64, set as it
+// is laid and as it turns, and its cell's top left
+var rows = new Int32Array(64 * 64), rowN = new Int32Array(64);
+var crossX = new Int32Array(64), crossY = new Int32Array(64);
+var half = 0;                       // the crossings bridged this tick: q & 1
+var pbox = new Int32Array(4);       // the box of the step before last
 
 function setup() {
     field = img(W, H);
@@ -130,6 +151,7 @@ function setup() {
     flicks = particles.pool(48);
     flicks.gravity = 0.1;
     for (var q = 0; q < 18 * 4 * 2; q++) insides.push(null);
+    for (var q2 = 0; q2 < 18 * 4; q2++) bridges.push(null);
     fill(pourAt, -1);
 }
 
@@ -267,6 +289,12 @@ function lay() {
     target(SCREEN);
     for (var c2 = 0; c2 < 64; c2++)
         stamp(c2, 1, (board.sealed[c2 * 2] ? 1 : 0) | (board.sealed[c2 * 2 + 1] ? 2 : 0));
+    crossN = 0;
+    for (var c3 = 0; c3 < 64; c3++)
+        if (board.kind[c3] >= 12 && (board.kind[c3] & 1) == 0) {
+            crossings[crossN] = c3;
+            span(crossN++);
+        }
     feed = -1;
     feedT = 0;
     fill(pourAt, -1);
@@ -321,6 +349,8 @@ function flick(c) {
 // the turn ends: the walls as the piece now stands, hollow inside
 function close(c) {
     stamp(c, 1, 0);
+    for (var q = 0; q < crossN; q++)
+        if (crossings[q] == c) span(q);
 }
 
 // After the analysis: pours into every node of a network that sealed,
@@ -378,6 +408,89 @@ function pourInto(c) {
     }
 }
 
+function bridge(k, r) {
+    var key = k * 4 + r;
+    if (bridges[key] != null) return bridges[key];
+    var list = inside(k, r, 0), level = (r & 1) == 0, out = [];
+    for (var j = 13; j >= 0; j--) {
+        var lo = -1, hi = 14;       // the last pixel before the cut, the first after
+        for (var i = 0; i < list.length; i++) {
+            var x = list[i] % 14, y = flr(list[i] / 14);
+            var u = level ? x : y;
+            if ((level ? y : x) != j) continue;
+            if (u < 7) lo = max(lo, u); else hi = min(hi, u);
+        }
+        if (lo < 1 || hi > 12) continue;
+        if (level) out.push(lo, j, hi, j, lo - 1, j, hi + 1, j);
+        else out.push(j, lo, j, hi, -1, -1, -1, -1);
+    }
+    bridges[key] = out;
+    return out;
+}
+
+// crossing q's rows, as its piece now stands
+function span(q) {
+    var c = crossings[q], b = bridge(board.kind[c], board.turns[c]);
+    var x0 = ox + (c % 8) * 14, y0 = oy + flr(c / 8) * 14;
+    crossX[q] = x0; crossY[q] = y0;
+    rowN[q] = b.length;
+    for (var i = 0; i < b.length; i += 2) {
+        rows[q * 64 + i] = b[i] < 0 ? -1 : x0 + b[i];
+        rows[q * 64 + i + 1] = b[i + 1] < 0 ? -1 : y0 + b[i + 1];
+    }
+}
+
+// A tick of half the bridges, those in the box the last two steps
+// changed (a bridge outside it is as it was, and carried nothing);
+// returns whether any carried liquid. A pixel m is the crossing's liquid when m >> 1 is h,
+// and empty when m is air or hollow. A level row with no liquid at the
+// cut has none in the rows of its lane above it either.
+function cross() {
+    var any = 0, gx0 = box[0], gy0 = box[1], gx1 = box[2], gy1 = box[3];
+    if (gx0 < 0) { gx0 = pbox[0]; gy0 = pbox[1]; gx1 = pbox[2]; gy1 = pbox[3]; }
+    else if (pbox[0] >= 0) {
+        gx0 = min(gx0, pbox[0]); gy0 = min(gy0, pbox[1]);
+        gx1 = max(gx1, pbox[2]); gy1 = max(gy1, pbox[3]);
+    }
+    half = 1 - half;
+    target(field);
+    for (var q = half; q < crossN; q += 2) {
+        var x0 = crossX[q], y0 = crossY[q];
+        if (x0 > gx1 || x0 + 13 < gx0 || y0 > gy1 || y0 + 13 < gy0) continue;
+        var c = crossings[q];
+        if (c == spin || board.sealed[c * 2]) continue;
+        var h = (LIQ >> 1) + board.chan[c * 2], end = q * 64 + rowN[q], dry = -1;
+        for (var i = q * 64; i < end; i += 8) {
+            var ax = rows[i], ay = rows[i + 1], bx = rows[i + 2], by = rows[i + 3];
+            var ex = rows[i + 4], a, d, f;
+            if (ex < 0) {
+                a = pget(ax, ay);
+                if (a >> 1 != h) continue;
+                d = pget(bx, by);
+                if (d == HOLLOW || d == AIR) { pset(bx, by, a); pset(ax, ay, HOLLOW); any = 1; }
+                continue;
+            }
+            if (ay == dry) { dry--; continue; }
+            a = pget(ax, ay); d = pget(bx, by);
+            if (a >> 1 == h) {
+                if ((d == HOLLOW || d == AIR) && pget(ex, rows[i + 5]) >> 1 == h) {
+                    f = pget(rows[i + 6], rows[i + 7]);
+                    if (f == HOLLOW || f == AIR) { pset(bx, by, a); pset(ax, ay, HOLLOW); any = 1; }
+                }
+            } else if (d >> 1 == h) {
+                if ((a == HOLLOW || a == AIR) && pget(rows[i + 6], rows[i + 7]) >> 1 == h) {
+                    f = pget(ex, rows[i + 5]);
+                    if (f == HOLLOW || f == AIR) { pset(ax, ay, d); pset(bx, by, HOLLOW); any = 1; }
+                }
+            } else {
+                dry = ay - 1;
+            }
+        }
+    }
+    target(SCREEN);
+    return any;
+}
+
 function step() {
     // Pouring a sealed network: each of its pipes, from its turn on, takes
     // a few drops a tick at its top until no more fit -- the network is
@@ -430,6 +543,8 @@ function step() {
     // on a slow player the field moves every other tick: the water at
     // half speed rather than the game falling behind
     if (slow && (frame() & 1)) return;
+    if (crossN > 0 && (box[0] >= 0 || pbox[0] >= 0) && cross()) awake = SETTLE;
+    for (var b = 0; b < 4; b++) pbox[b] = box[b];
     fill(box, -1);
     moved = cells.step(field, 0, rules, null, box);
     if (box[0] >= 0) dirty(box[0], box[1], box[2], box[3]);
